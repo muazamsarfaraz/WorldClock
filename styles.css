@@ -1,0 +1,583 @@
+/* Custom styles for Modern Multi-Clock */
+
+/* Base styles */
+body {
+  transition: background-color 0.3s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Container for the grid to ensure proper centering */
+#clocks-container {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  justify-content: center; /* Center grid items horizontally */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* For medium screens, force 2 columns */
+@media (min-width: 768px) {
+  #clocks-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* For large screens, force 3 columns */
+@media (min-width: 1024px) {
+  #clocks-container {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.clock-item {
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 100%;
+  max-width: 350px;
+  margin: 0 auto;
+  justify-self: center; /* Center each clock item within its grid cell */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center all content horizontally */
+}
+
+.clock-item:hover {
+  transform: translateY(-5px);
+}
+
+/* Clock Face Hour Markers */
+.hour-markers::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+}
+
+/* Create the hour marks */
+.clock-face::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, transparent 65%, transparent 66%, rgba(255, 255, 255, 0.9) 66.5%, rgba(255, 255, 255, 0.9) 67%, transparent 67.5%),
+    repeating-conic-gradient(
+      transparent 0deg,
+      transparent 2deg,
+      transparent 6deg,
+      transparent 94deg,
+      rgba(255, 255, 255, 0.5) 94.5deg,
+      rgba(255, 255, 255, 0.5) 95.5deg,
+      transparent 96deg,
+      transparent 360deg
+    );
+}
+
+/* UI Element Transitions */
+.analog-clock, .digital-clock, .clock-item, button, select {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+}
+
+/* Analog clock container */
+.analog-clock-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Clock hands smooth rotation */
+.hour-hand, .minute-hand, .second-hand {
+  transition: transform 0.1s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+}
+
+/* Digital Clock */
+.digital-clock {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* Timezone container */
+.timezone-container {
+  width: 100%;
+  max-width: 250px;
+  margin: 0 auto;
+}
+
+/* Second hand should tick */
+.second-hand {
+  transition: transform 0.05s cubic-bezier(0.4, 2.08, 0.55, 0.44);
+}
+
+/* Light Theme */
+body.light-theme {
+  background-color: #f0f9ff;
+  color: #1e293b;
+}
+
+body.light-theme .clock-item {
+  background-color: #e0e7ff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .analog-clock {
+  background-color: #d1d9fa;
+}
+
+body.light-theme .clock-face {
+  background-color: #f8fafc;
+}
+
+body.light-theme h1 {
+  color: #1e293b;
+}
+
+body.light-theme .hour-hand,
+body.light-theme .minute-hand {
+  background-color: #1e293b;
+}
+
+body.light-theme .second-hand {
+  background-color: #ef4444;
+}
+
+body.light-theme .date {
+  color: #64748b;
+}
+
+body.light-theme .day {
+  color: #94a3b8;
+}
+
+/* Controls styling */
+body.light-theme #add-clock {
+  background-color: #2563eb;
+}
+
+body.light-theme #add-clock:hover {
+  background-color: #3b82f6;
+}
+
+body.light-theme #theme-toggle {
+  background-color: #e0e7ff;
+  color: #1e293b;
+}
+
+body.light-theme #theme-toggle:hover {
+  background-color: #cbd5e1;
+}
+
+/* Timezone Selector Styling */
+.timezone-select {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.timezone-select:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+body.light-theme .timezone-select {
+  background-color: #e0e7ff;
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+body.light-theme .timezone-select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+}
+
+/* Clock item entrance/exit animations */
+@keyframes clock-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes clock-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+
+.clock-enter {
+  animation: clock-in 0.5s ease forwards;
+}
+
+.clock-exit {
+  animation: clock-out 0.3s ease forwards;
+}
+
+/* Geochron Map Styles */
+.geochron-container {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#geochron-map {
+  background-color: #1e293b;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  z-index: 1; /* Ensure proper stacking context for Leaflet */
+}
+
+/* Leaflet specific styles */
+.leaflet-container {
+  background-color: #1e293b !important;
+  height: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Fix for map duplication at low zoom levels */
+.leaflet-tile-container img {
+  width: 256px !important;
+  height: 256px !important;
+}
+
+/* Prevent map panning beyond bounds */
+.leaflet-map-pane {
+  transition: transform 0.1s ease;
+}
+
+/* Fix for map rendering issues */
+.leaflet-tile {
+  visibility: inherit !important;
+}
+
+/* Ensure proper clipping of map */
+#geochron-map {
+  clip-path: inset(0 0 0 0);
+  -webkit-clip-path: inset(0 0 0 0);
+}
+
+.leaflet-control-attribution {
+  font-size: 8px !important;
+  background-color: rgba(30, 41, 59, 0.7) !important;
+  color: #94a3b8 !important;
+}
+
+.leaflet-control-attribution a {
+  color: #93c5fd !important;
+}
+
+.map-loading {
+  z-index: 500;
+  background-color: rgba(30, 41, 59, 0.7);
+}
+
+/* Day/Night Visualization */
+.day-night-terminator {
+  stroke: rgba(255, 255, 255, 0.3);
+  stroke-width: 1px;
+  stroke-dasharray: 3 2;
+  fill: none;
+  z-index: 1000;
+  opacity: 0.7;
+}
+
+/* Day area (full daylight) */
+.day-overlay {
+  background-color: rgba(255, 255, 255, 0.03);
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+}
+
+/* Civil twilight (sun is 0-6° below horizon) - dawn/dusk */
+.civil-twilight-overlay {
+  pointer-events: none;
+  background: linear-gradient(to right,
+    rgba(59, 130, 246, 0.2),
+    rgba(249, 115, 22, 0.25),
+    rgba(234, 88, 12, 0.3)
+  );
+  mix-blend-mode: screen;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+}
+
+/* Nautical twilight (sun is 6-12° below horizon) */
+.nautical-twilight-overlay {
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+    rgba(30, 64, 175, 0.25),
+    rgba(30, 58, 138, 0.35)
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Astronomical twilight (sun is 12-18° below horizon) */
+.astronomical-twilight-overlay {
+  pointer-events: none;
+  background: linear-gradient(to bottom,
+    rgba(15, 23, 42, 0.4),
+    rgba(15, 23, 42, 0.5)
+  );
+  mix-blend-mode: multiply;
+}
+
+/* Night area (full darkness, sun is >18° below horizon) */
+.night-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* Transition layers between twilight zones */
+.twilight-transition {
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity 0.3s ease;
+}
+
+.sun-marker {
+  border-radius: 50%;
+  background-color: #fbbf24;
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 10px #fbbf24;
+}
+
+/* Timezone markers */
+.timezone-marker {
+  background: transparent;
+}
+
+.marker-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Time bubble styles */
+.time-bubble-marker {
+  background: transparent;
+  z-index: 500;
+}
+
+.time-bubble {
+  background-color: rgba(30, 41, 59, 0.85);
+  color: white;
+  border-radius: 8px;
+  padding: 4px 8px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 60px;
+  transform: translateY(-5px);
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.time-bubble:hover {
+  transform: translateY(-8px) scale(1.05);
+  background-color: rgba(30, 41, 59, 0.95);
+}
+
+.time-text {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.city-name {
+  font-size: 10px;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timezone-tooltip {
+  background-color: rgba(30, 41, 59, 0.9);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Light theme styles */
+body.light-theme .timezone-tooltip {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+}
+
+body.light-theme .marker-dot {
+  background-color: #2563eb;
+  border-color: #f8fafc;
+}
+
+body.light-theme .time-bubble {
+  background-color: rgba(255, 255, 255, 0.85);
+  color: #1e293b;
+  border: 1px solid rgba(30, 41, 59, 0.2);
+}
+
+body.light-theme .time-bubble:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* Hide time bubbles when toggle is off */
+.hide-time-bubbles .time-bubble {
+  display: none;
+}
+
+/* Keep marker dots visible even when bubbles are hidden */
+.hide-time-bubbles .marker-dot {
+  display: block;
+}
+
+/* Active state for toggle button */
+.map-controls button.active {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Map controls */
+.map-controls button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+/* Light Theme Geochron Map */
+body.light-theme .geochron-container {
+  background-color: #e0e7ff;
+}
+
+body.light-theme #geochron-map {
+  background-color: #dbeafe;
+}
+
+body.light-theme .leaflet-container {
+  background-color: #dbeafe !important;
+}
+
+body.light-theme .leaflet-control-attribution {
+  background-color: rgba(219, 234, 254, 0.7) !important;
+  color: #64748b !important;
+}
+
+body.light-theme .map-loading {
+  background-color: rgba(219, 234, 254, 0.7);
+}
+
+/* Light theme twilight styles */
+body.light-theme .day-night-terminator {
+  stroke: rgba(30, 41, 59, 0.3);
+  opacity: 0.5;
+}
+
+body.light-theme .day-overlay {
+  background-color: rgba(255, 255, 255, 0);
+  mix-blend-mode: normal;
+}
+
+body.light-theme .civil-twilight-overlay {
+  background: linear-gradient(to right,
+    rgba(59, 130, 246, 0.15),
+    rgba(249, 115, 22, 0.2),
+    rgba(234, 88, 12, 0.25)
+  );
+  mix-blend-mode: multiply;
+}
+
+body.light-theme .nautical-twilight-overlay {
+  background: linear-gradient(to bottom,
+    rgba(30, 64, 175, 0.2),
+    rgba(30, 58, 138, 0.25)
+  );
+  mix-blend-mode: multiply;
+}
+
+body.light-theme .astronomical-twilight-overlay {
+  background: linear-gradient(to bottom,
+    rgba(15, 23, 42, 0.25),
+    rgba(15, 23, 42, 0.3)
+  );
+  mix-blend-mode: multiply;
+}
+
+body.light-theme .night-overlay {
+  background-color: rgba(30, 41, 59, 0.35);
+  mix-blend-mode: multiply;
+}
+
+body.light-theme .twilight-transition {
+  mix-blend-mode: multiply;
+  opacity: 0.8;
+}
+
+body.light-theme .map-controls button {
+  background-color: #e0e7ff;
+  color: #1e293b;
+}
+
+body.light-theme .map-controls button:hover {
+  background-color: #cbd5e1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .analog-clock {
+    width: 150px !important;
+    height: 150px !important;
+  }
+
+  .hour-hand {
+    height: 40px !important;
+  }
+
+  .minute-hand {
+    height: 60px !important;
+  }
+
+  .second-hand {
+    height: 70px !important;
+  }
+
+  .digital-clock .time {
+    font-size: 1.8rem;
+  }
+
+  .date, .day {
+    font-size: 0.9rem;
+  }
+
+  #clocks-container {
+    gap: 1rem;
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Clock</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Leaflet CSS and JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white">
+
+  <h1 class="text-3xl font-bold mb-4">World Clocks</h1>
+
+  <!-- Geochron Map Container -->
+  <div class="geochron-container w-full max-w-6xl mb-8 bg-gray-800 rounded-xl shadow-lg p-4 relative">
+    <h2 class="text-xl font-semibold mb-2 text-center">Day & Night World Map</h2>
+    <div id="geochron-map" class="w-full h-64 md:h-80 relative overflow-hidden rounded-lg">
+      <!-- Map will be rendered here via Leaflet -->
+      <div class="absolute inset-0 flex items-center justify-center text-gray-500 map-loading">
+        <p>Loading map...</p>
+      </div>
+    </div>
+    <div class="flex justify-between items-center mt-2">
+      <div class="text-xs text-gray-400 text-center">Map shows current daylight, twilight (dawn/dusk), and night regions</div>
+      <div class="map-controls flex gap-2">
+        <button id="zoom-in" class="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 transition-colors text-sm">+</button>
+        <button id="zoom-out" class="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 transition-colors text-sm">-</button>
+        <button id="reset-view" class="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 transition-colors text-sm">Reset</button>
+        <button id="toggle-style" class="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 transition-colors text-sm flex items-center">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+          </svg>
+        </button>
+        <button id="toggle-time-bubbles" class="px-2 py-1 bg-gray-700 rounded hover:bg-gray-600 transition-colors text-sm flex items-center" title="Toggle Time Bubbles">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clock Grid Container with centering wrapper -->
+  <div class="flex justify-center w-full">
+    <div id="clocks-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-6 max-w-6xl">
+      <!-- Clocks will be inserted here via JavaScript -->
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls flex flex-col md:flex-row items-center justify-center gap-4 mt-8 mb-8">
+    <!-- Add Clock Button -->
+    <button id="add-clock" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-colors flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+      </svg>
+      Add Clock
+    </button>
+
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+      Toggle Theme
+    </button>
+
+    <!-- Toggle Geochron Map -->
+    <button id="toggle-map" class="px-4 py-2 bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors flex items-center">
+      <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+      </svg>
+      Toggle World Map
+    </button>
+  </div>
+
+  <!-- Clock Template (hidden, used for JS cloning) -->
+  <template id="clock-template">
+    <div class="clock-item bg-gray-800 rounded-xl shadow-lg p-6 flex flex-col items-center relative">
+      <!-- Remove Button -->
+      <button class="remove-clock absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <!-- Analog Clock -->
+      <div class="analog-clock-container mb-4 flex justify-center w-full">
+        <div class="analog-clock bg-gray-700 rounded-full shadow-lg p-2 relative mx-auto" style="width: 200px; height: 200px;">
+          <!-- Clock Face -->
+          <div class="clock-face bg-gray-600 rounded-full w-full h-full relative flex items-center justify-center">
+            <!-- Hour Markers (added via JS) -->
+            <div class="hour-markers"></div>
+
+            <!-- Clock Center -->
+            <div class="clock-center bg-white rounded-full absolute" style="width: 8px; height: 8px; z-index: 10;"></div>
+
+            <!-- Clock Hands -->
+            <div class="hour-hand bg-white absolute rounded-full" style="height: 60px; width: 3px; bottom: 50%; transform-origin: bottom;"></div>
+            <div class="minute-hand bg-white absolute rounded-full" style="height: 80px; width: 2px; bottom: 50%; transform-origin: bottom;"></div>
+            <div class="second-hand bg-red-500 absolute rounded-full" style="height: 90px; width: 1px; bottom: 50%; transform-origin: bottom;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Digital Clock -->
+      <div class="digital-clock text-center">
+        <div class="time text-4xl font-bold tracking-wider mb-2">00:00:00</div>
+        <div class="date text-md text-gray-400"></div>
+        <div class="day text-sm text-gray-500 mt-1 mb-4"></div>
+      </div>
+
+      <!-- Timezone Selector -->
+      <div class="timezone-container w-full">
+        <select class="timezone-select bg-gray-700 text-white px-3 py-2 rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-sm">
+          <option value="UTC">UTC±0 (Coordinated Universal Time)</option>
+          <option value="Europe/London">London (GMT/BST, UTC+0/+1)</option>
+          <option value="America/New_York">New York (EST/EDT, UTC-5/-4)</option>
+          <option value="America/Chicago">Chicago (CST/CDT, UTC-6/-5)</option>
+          <option value="America/Denver">Denver (MST/MDT, UTC-7/-6)</option>
+          <option value="America/Los_Angeles">Los Angeles (PST/PDT, UTC-8/-7)</option>
+          <option value="Asia/Tokyo">Tokyo (JST, UTC+9)</option>
+          <option value="Asia/Dubai">Dubai (GST, UTC+4)</option>
+          <option value="Australia/Sydney">Sydney (AEST/AEDT, UTC+10/+11)</option>
+          <option value="Pacific/Auckland">Auckland (NZST/NZDT, UTC+12/+13)</option>
+          <option value="Asia/Kolkata">India (IST, UTC+5:30)</option>
+          <option value="Europe/Paris">Paris (CET/CEST, UTC+1/+2)</option>
+        </select>
+      </div>
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
