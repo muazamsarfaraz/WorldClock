@@ -420,29 +420,45 @@ class GeochronMap {
 
   // Initialize the Leaflet map
   initMap() {
-    // Remove loading indicator
-    const loadingIndicator = this.element.querySelector('.map-loading');
-    if (loadingIndicator) {
-      loadingIndicator.remove();
-    }
+    try {
+      console.log('Initializing map...');
 
-    // Create the map with a world-centered view
-    this.map = L.map(this.element, {
-      center: [20, 0],
-      zoom: 2,
-      minZoom: 2,  // Increase minimum zoom to prevent showing multiple worlds
-      maxZoom: 6,
-      zoomControl: false,
-      attributionControl: true,
-      scrollWheelZoom: true,
-      doubleClickZoom: true,
-      dragging: true,
-      worldCopyJump: false,  // Disable world copy jump to prevent duplication
-      maxBounds: [[-85, -180], [85, 180]],  // Limit to standard Web Mercator bounds
-      maxBoundsViscosity: 1.0,
-      fadeAnimation: true,
-      markerZoomAnimation: true
-    });
+      // Remove loading indicator
+      const loadingIndicator = this.element.querySelector('.map-loading');
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+
+      // Check if Leaflet is available
+      if (typeof L === 'undefined') {
+        console.error('Leaflet library not loaded!');
+        this.showMapError('Map library failed to load. Please check your internet connection and try again.');
+        return;
+      }
+
+      // Create the map with a world-centered view
+      this.map = L.map(this.element, {
+        center: [20, 0],
+        zoom: 2,
+        minZoom: 2,  // Increase minimum zoom to prevent showing multiple worlds
+        maxZoom: 6,
+        zoomControl: false,
+        attributionControl: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        dragging: true,
+        worldCopyJump: false,  // Disable world copy jump to prevent duplication
+        maxBounds: [[-85, -180], [85, 180]],  // Limit to standard Web Mercator bounds
+        maxBoundsViscosity: 1.0,
+        fadeAnimation: true,
+        markerZoomAnimation: true
+      });
+
+      console.log('Map initialized successfully');
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      this.showMapError('Failed to initialize map. Error: ' + error.message);
+    }
 
     // Add base and label layers based on current style
     this.baseTileLayer = null;
@@ -496,6 +512,35 @@ class GeochronMap {
 
     // Start updating the map
     this.startUpdating();
+  }
+
+  // Show error message on the map
+  showMapError(message) {
+    // Create or update error message element
+    let errorElement = this.element.querySelector('.map-error');
+
+    if (!errorElement) {
+      errorElement = document.createElement('div');
+      errorElement.className = 'map-error absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-90 text-white p-4 text-center';
+      this.element.appendChild(errorElement);
+    }
+
+    errorElement.innerHTML = `
+      <div class="error-content">
+        <p class="text-red-500 text-lg mb-2">⚠️ Map Error</p>
+        <p>${message}</p>
+        <button class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 retry-map-button">Retry</button>
+      </div>
+    `;
+
+    // Add retry button functionality
+    const retryButton = errorElement.querySelector('.retry-map-button');
+    if (retryButton) {
+      retryButton.addEventListener('click', () => {
+        errorElement.remove();
+        this.initMap();
+      });
+    }
   }
 
   // Apply time bubbles visibility state
@@ -596,32 +641,51 @@ class GeochronMap {
 
   // Set the map style
   setMapStyle(styleName) {
-    if (!this.mapStyles[styleName]) {
-      console.error(`Map style '${styleName}' not found`);
-      return;
+    try {
+      if (!this.map) {
+        console.error('Map not initialized');
+        return;
+      }
+
+      if (!this.mapStyles[styleName]) {
+        console.error(`Map style '${styleName}' not found`);
+        return;
+      }
+
+      const style = this.mapStyles[styleName];
+      console.log(`Setting map style to ${styleName}`);
+
+      // Remove existing layers if they exist
+      if (this.baseTileLayer) {
+        this.map.removeLayer(this.baseTileLayer);
+      }
+
+      if (this.labelTileLayer) {
+        this.map.removeLayer(this.labelTileLayer);
+      }
+
+      // Add new base layer
+      this.baseTileLayer = L.tileLayer(style.base, {
+        attribution: style.attribution,
+        subdomains: 'abcd',
+        maxZoom: 6,
+        minZoom: 2,
+        noWrap: true,  // Prevent tile wrapping around the world
+        bounds: [[-85, -180], [85, 180]],
+        tileSize: 256
+      }).addTo(this.map);
+
+      // Add error handling for tile loading
+      this.baseTileLayer.on('tileerror', (error) => {
+        console.error('Tile loading error:', error);
+        // Only show error if we haven't already shown one
+        if (!this.element.querySelector('.map-error')) {
+          this.showMapError('Failed to load map tiles. Please check your internet connection and try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Error setting map style:', error);
     }
-
-    const style = this.mapStyles[styleName];
-
-    // Remove existing layers if they exist
-    if (this.baseTileLayer) {
-      this.map.removeLayer(this.baseTileLayer);
-    }
-
-    if (this.labelTileLayer) {
-      this.map.removeLayer(this.labelTileLayer);
-    }
-
-    // Add new base layer
-    this.baseTileLayer = L.tileLayer(style.base, {
-      attribution: style.attribution,
-      subdomains: 'abcd',
-      maxZoom: 6,
-      minZoom: 2,
-      noWrap: true,  // Prevent tile wrapping around the world
-      bounds: [[-85, -180], [85, 180]],
-      tileSize: 256
-    }).addTo(this.map);
 
     // Add new labels layer if available
     if (style.labels) {
