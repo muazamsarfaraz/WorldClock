@@ -954,7 +954,10 @@ class GeochronMap {
     const normalizedLongitude = ((subsolarLongitude + 540) % 360) - 180;
 
     // Check if the subsolar point is in the eastern hemisphere (0 to 180)
-    const isEastDay = normalizedLongitude >= 0 && normalizedLongitude <= 180;
+    // NOTE: We're inverting the logic here to fix the day/night display
+    // The subsolar point is always in daylight, but we need to invert our logic
+    // to match how our polygons are constructed
+    const isEastDay = !(normalizedLongitude >= 0 && normalizedLongitude <= 180);
 
     console.log('Subsolar point:', subsolarPoint, 'Normalized longitude:', normalizedLongitude, 'Is East Day:', isEastDay);
 
