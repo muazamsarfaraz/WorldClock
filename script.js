@@ -898,8 +898,9 @@ class GeochronMap {
 
   // Update the day/night visualization
   updateDayNight() {
-    const now = new Date();
-    const subsolarPoint = this.calculateSubsolarPoint(now);
+    try {
+      const now = new Date();
+      const subsolarPoint = this.calculateSubsolarPoint(now);
 
     // Update sun marker position
     if (this.sunMarker) {
@@ -943,12 +944,19 @@ class GeochronMap {
 
     const westHemisphere = terminatorPoints;
 
-    // Create a Leaflet polygon to use its contains() method
-    const eastPoly = L.polygon(eastHemisphere);
+    // Determine which side is day based on the subsolar point's longitude
+    // If the subsolar point is in the eastern hemisphere (0 to 180), then east is day
+    // If the subsolar point is in the western hemisphere (-180 to 0), then west is day
+    // This is a simpler approach than using polygon.contains() which might not be available
+    const subsolarLongitude = subsolarPoint.longitude;
 
-    // Check which polygon contains the subsolar point
-    const subsolarLatLng = L.latLng(subsolarPoint.latitude, subsolarPoint.longitude);
-    const isEastDay = eastPoly.contains(subsolarLatLng);
+    // Normalize longitude to -180 to 180 range
+    const normalizedLongitude = ((subsolarLongitude + 540) % 360) - 180;
+
+    // Check if the subsolar point is in the eastern hemisphere (0 to 180)
+    const isEastDay = normalizedLongitude >= 0 && normalizedLongitude <= 180;
+
+    console.log('Subsolar point:', subsolarPoint, 'Normalized longitude:', normalizedLongitude, 'Is East Day:', isEastDay);
 
     // Create polygons for each twilight zone
     let dayPolygon, civilTwilightPolygon, nauticalTwilightPolygon, astronomicalTwilightPolygon, nightPolygon;
@@ -1114,6 +1122,9 @@ class GeochronMap {
 
     // Add terminator line
     this.terminatorPolyline.addTo(this.dayNightLayer);
+    } catch (error) {
+      console.error('Error updating day/night visualization:', error);
+    }
   }
 
   // Start updating the map
