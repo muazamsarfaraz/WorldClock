@@ -683,29 +683,34 @@ class GeochronMap {
           this.showMapError('Failed to load map tiles. Please check your internet connection and try again.');
         }
       });
+
+      // Add new labels layer if available
+      if (style.labels) {
+        this.labelTileLayer = L.tileLayer(style.labels, {
+          attribution: '',
+          subdomains: 'abcd',
+          maxZoom: 6,
+          minZoom: 2,
+          noWrap: true,  // Prevent tile wrapping around the world
+          bounds: [[-85, -180], [85, 180]],
+          tileSize: 256,
+          pane: 'shadowPane' // Place labels on top
+        }).addTo(this.map);
+
+        // Add error handling for label tiles
+        this.labelTileLayer.on('tileerror', (error) => {
+          console.error('Label tile loading error:', error);
+        });
+      }
+
+      // Update current style
+      this.currentStyle = styleName;
+
+      // Save preference
+      localStorage.setItem('mapStyle', styleName);
     } catch (error) {
       console.error('Error setting map style:', error);
     }
-
-    // Add new labels layer if available
-    if (style.labels) {
-      this.labelTileLayer = L.tileLayer(style.labels, {
-        attribution: '',
-        subdomains: 'abcd',
-        maxZoom: 6,
-        minZoom: 2,
-        noWrap: true,  // Prevent tile wrapping around the world
-        bounds: [[-85, -180], [85, 180]],
-        tileSize: 256,
-        pane: 'shadowPane' // Place labels on top
-      }).addTo(this.map);
-    }
-
-    // Update current style
-    this.currentStyle = styleName;
-
-    // Save preference
-    localStorage.setItem('mapStyle', styleName);
   }
 
   // Setup map control buttons
