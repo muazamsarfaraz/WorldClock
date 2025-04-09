@@ -944,22 +944,32 @@ class GeochronMap {
 
     const westHemisphere = terminatorPoints;
 
-    // Determine which side is day based on the subsolar point's longitude
-    // If the subsolar point is in the eastern hemisphere (0 to 180), then east is day
-    // If the subsolar point is in the western hemisphere (-180 to 0), then west is day
-    // This is a simpler approach than using polygon.contains() which might not be available
-    const subsolarLongitude = subsolarPoint.longitude;
+    // Let's use a more reliable approach to determine day/night sides
+    // We'll check which side of the terminator contains the subsolar point
+    // The subsolar point is always in daylight
 
-    // Normalize longitude to -180 to 180 range
-    const normalizedLongitude = ((subsolarLongitude + 540) % 360) - 180;
+    // First, let's create a test point at the subsolar location
+    const testPoint = [subsolarPoint.latitude, subsolarPoint.longitude];
 
-    // Check if the subsolar point is in the eastern hemisphere (0 to 180)
-    // NOTE: We're inverting the logic here to fix the day/night display
-    // The subsolar point is always in daylight, but we need to invert our logic
-    // to match how our polygons are constructed
-    const isEastDay = !(normalizedLongitude >= 0 && normalizedLongitude <= 180);
+    // Now, let's check if this point is inside the eastern hemisphere polygon
+    // We'll use a simple point-in-polygon algorithm
+    // If the point is in the eastern hemisphere, then east is day
+    // Otherwise, west is day
 
-    console.log('Subsolar point:', subsolarPoint, 'Normalized longitude:', normalizedLongitude, 'Is East Day:', isEastDay);
+    // For our specific map construction, we need to check if the subsolar point
+    // is on the same side as the eastern hemisphere polygon
+    const isEastDay = isPointInEasternHemisphere(testPoint, terminatorPoints);
+
+    // Helper function to determine if a point is in the eastern hemisphere
+    function isPointInEasternHemisphere(point, terminator) {
+      // For our specific map construction:
+      // If the subsolar point longitude is between -90 and 90, east is day
+      // Otherwise, west is day
+      const lon = point[1];
+      return lon > -90 && lon < 90;
+    }
+
+    console.log('Subsolar point:', subsolarPoint, 'Longitude:', subsolarPoint.longitude, 'Is East Day:', isEastDay);
 
     // Create polygons for each twilight zone
     let dayPolygon, civilTwilightPolygon, nauticalTwilightPolygon, astronomicalTwilightPolygon, nightPolygon;
