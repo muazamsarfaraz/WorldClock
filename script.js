@@ -448,7 +448,7 @@ class GeochronMap {
         doubleClickZoom: true,
         dragging: true,
         worldCopyJump: false,  // Disable world copy jump to prevent duplication
-        maxBounds: [[-85, -180], [85, 180]],  // Limit to standard Web Mercator bounds
+        maxBounds: [[-80, -180], [80, 180]],  // Limit to slightly tighter bounds to prevent edge corruption
         maxBoundsViscosity: 1.0,
         fadeAnimation: true,
         markerZoomAnimation: true
@@ -671,7 +671,7 @@ class GeochronMap {
         maxZoom: 6,
         minZoom: 2,
         noWrap: true,  // Prevent tile wrapping around the world
-        bounds: [[-85, -180], [85, 180]],
+        bounds: [[-80, -180], [80, 180]],
         tileSize: 256
       }).addTo(this.map);
 
@@ -692,7 +692,7 @@ class GeochronMap {
           maxZoom: 6,
           minZoom: 2,
           noWrap: true,  // Prevent tile wrapping around the world
-          bounds: [[-85, -180], [85, 180]],
+          bounds: [[-80, -180], [80, 180]],
           tileSize: 256,
           pane: 'shadowPane' // Place labels on top
         }).addTo(this.map);
@@ -966,7 +966,8 @@ class GeochronMap {
       // If the subsolar point longitude is between -90 and 90, east is day
       // Otherwise, west is day
       const lon = point[1];
-      return lon > -90 && lon < 90;
+      // IMPORTANT: We need to invert the logic to fix the day/night display
+      return !(lon > -90 && lon < 90);
     }
 
     console.log('Subsolar point:', subsolarPoint, 'Longitude:', subsolarPoint.longitude, 'Is East Day:', isEastDay);
@@ -1189,7 +1190,7 @@ class GeochronMap {
       // Ensure map is within bounds
       const bounds = this.map.getBounds();
       if (bounds && bounds._northEast && bounds._southWest) {
-        if (bounds._northEast.lat > 85 || bounds._southWest.lat < -85 ||
+        if (bounds._northEast.lat > 80 || bounds._southWest.lat < -80 ||
             bounds._northEast.lng > 180 || bounds._southWest.lng < -180) {
           this.map.setView([20, 0], 2, {animate: false});
         }
