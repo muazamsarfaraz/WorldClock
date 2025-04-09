@@ -398,15 +398,15 @@ class GeochronMap {
 
     // Map style state
     this.currentStyle = 'standard';
-    this.mapStyles = {
+  this.mapStyles = {
       standard: {
-        base: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
-        labels: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+        base: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',
+        labels: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
       },
       satellite: {
         base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        labels: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png',
+        labels: 'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png',
         attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
       }
     };
@@ -421,9 +421,14 @@ class GeochronMap {
   // Initialize the Leaflet map
   initMap() {
     try {
+      // Ensure the map container is visible and has proper dimensions
+      this.element.style.display = 'block';
+      this.element.style.height = '500px';
+      this.element.style.width = '100%';
+      
       console.log('Initializing map...');
 
-      // Remove loading indicator
+      // Remove loading indicator if present
       const loadingIndicator = this.element.querySelector('.map-loading');
       if (loadingIndicator) {
         loadingIndicator.remove();
@@ -436,85 +441,78 @@ class GeochronMap {
         return;
       }
 
-      // Create the map with a world-centered view
+      // Create the map with simplified options for better compatibility
       this.map = L.map(this.element, {
         center: [20, 0],
         zoom: 2,
-        minZoom: 2,  // Increase minimum zoom to prevent showing multiple worlds
-        maxZoom: 6,
+        minZoom: 1,
+        maxZoom: 8,
         zoomControl: false,
         attributionControl: true,
-        scrollWheelZoom: 'center',  // Zoom to center of view
-        doubleClickZoom: true,
-        dragging: true,
-        worldCopyJump: false,  // Disable world copy jump to prevent duplication
-        maxBounds: [[-90, -180], [90, 180]],  // Limit to full world bounds
-        maxBoundsViscosity: 1.0,  // Ensure the map stays within bounds
-        zoomSnap: 0.5,  // Allow finer zoom levels
-        boxZoom: false,  // Disable box zoom to prevent edge issues
-        fadeAnimation: true,
-        markerZoomAnimation: true,
-        crs: L.CRS.EPSG3857  // Use standard Web Mercator projection
+        worldCopyJump: true
       });
 
-      console.log('Map initialized successfully');
+      // Add base tile layer immediately with simplified options
+      const style = this.mapStyles[this.currentStyle];
+      this.baseTileLayer = L.tileLayer(style.base, {
+        attribution: style.attribution,
+        crossOrigin: true
+      }).addTo(this.map);
+      
+      // Add label layer if available
+      if (style.labels) {
+        this.labelTileLayer = L.tileLayer(style.labels, {
+          pane: 'overlayPane',
+          attribution: '',
+          crossOrigin: true
+        }).addTo(this.map);
+      }
+
+      // Create layer groups for visualization components
+      this.dayNightLayer = L.layerGroup().addTo(this.map);
+      this.timezoneLayer = L.layerGroup().addTo(this.map);
+
+      // Create the terminator polyline with bright white for visibility
+      this.terminatorPolyline = L.polyline([], {
+        color: '#FFFFFF',
+        weight: 2,
+        dashArray: '5, 3'
+      });
+
+      // Create sun marker with a brighter, more visible icon
+      const sunIcon = L.divIcon({
+        className: 'sun-marker',
+        html: '<div style="width: 16px; height: 16px; background-color: yellow; border-radius: 50%; border: 2px solid orange; box-shadow: 0 0 10px yellow;"></div>',
+        iconSize: [16, 16]
+      });
+
+      this.sunMarker = L.marker([0, 0], {
+        icon: sunIcon,
+        interactive: false
+      });
+
+      // Force a map redraw to ensure proper initialization
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize({animate: false});
+          
+          // Add timezone markers
+          this.addTimezoneMarkers();
+          
+          // First update of the day/night visualization
+          this.updateDayNight();
+          
+          // Start regular updates
+          this.startUpdating();
+          
+          console.log('Map initialized successfully');
+        }
+      }, 300);
+
     } catch (error) {
       console.error('Error initializing map:', error);
       this.showMapError('Failed to initialize map. Error: ' + error.message);
     }
-
-    // Add base and label layers based on current style
-    this.baseTileLayer = null;
-    this.labelTileLayer = null;
-    this.setMapStyle(this.currentStyle);
-
-    // Create a layer group for day/night visualization
-    this.dayNightLayer = L.layerGroup().addTo(this.map);
-
-    // Create a layer group for timezone markers
-    this.timezoneLayer = L.layerGroup().addTo(this.map);
-
-    // Create the terminator polyline
-    this.terminatorPolyline = L.polyline([], {
-      color: 'rgba(255, 255, 255, 0.8)',
-      weight: 2,
-      dashArray: '5, 3',
-      className: 'day-night-terminator'
-    }).addTo(this.dayNightLayer);
-
-    // Create sun marker
-    const sunIcon = L.divIcon({
-      className: 'sun-marker',
-      iconSize: [12, 12]
-    });
-
-    this.sunMarker = L.marker([0, 0], {
-      icon: sunIcon,
-      interactive: false
-    }).addTo(this.dayNightLayer);
-
-    // Create day and night overlays
-    this.dayOverlay = L.rectangle([[-90, -180], [90, 180]], {
-      fillColor: 'blue',
-      fillOpacity: 0.1,
-      stroke: false,
-      className: 'day-overlay',
-      interactive: false
-    });
-
-    this.nightOverlay = L.rectangle([[-90, -180], [90, 180]], {
-      fillColor: 'black',
-      fillOpacity: 0.4,
-      stroke: false,
-      className: 'night-overlay',
-      interactive: false
-    });
-
-    // Add timezone markers
-    this.addTimezoneMarkers();
-
-    // Start updating the map
-    this.startUpdating();
   }
 
   // Show error message on the map
@@ -667,17 +665,26 @@ class GeochronMap {
         this.map.removeLayer(this.labelTileLayer);
       }
 
-      // Add new base layer
+      // Add new base layer with simplified options
       this.baseTileLayer = L.tileLayer(style.base, {
         attribution: style.attribution,
-        subdomains: 'abcd',
         maxZoom: 6,
-        minZoom: 2,
-        noWrap: true,  // Prevent tile wrapping around the world
-        bounds: [[-90, -180], [90, 180]],
+        minZoom: 1,
         tileSize: 256,
-        continuousWorld: false  // Prevent continuous world wrapping
+        crossOrigin: true
       }).addTo(this.map);
+      
+      // Add label layer if available
+      if (style.labels) {
+        this.labelTileLayer = L.tileLayer(style.labels, {
+          pane: 'overlayPane',
+          attribution: '',
+          maxZoom: 6,
+          minZoom: 1,
+          tileSize: 256,
+          crossOrigin: true
+        }).addTo(this.map);
+      }
 
       // Add error handling for tile loading
       this.baseTileLayer.on('tileerror', (error) => {
@@ -688,31 +695,20 @@ class GeochronMap {
         }
       });
 
-      // Add new labels layer if available
-      if (style.labels) {
-        this.labelTileLayer = L.tileLayer(style.labels, {
-          attribution: '',
-          subdomains: 'abcd',
-          maxZoom: 6,
-          minZoom: 2,
-          noWrap: true,  // Prevent tile wrapping around the world
-          bounds: [[-90, -180], [90, 180]],
-          tileSize: 256,
-          pane: 'shadowPane', // Place labels on top
-          continuousWorld: false  // Prevent continuous world wrapping
-        }).addTo(this.map);
-
-        // Add error handling for label tiles
-        this.labelTileLayer.on('tileerror', (error) => {
-          console.error('Label tile loading error:', error);
-        });
-      }
-
       // Update current style
       this.currentStyle = styleName;
 
       // Save preference
       localStorage.setItem('mapStyle', styleName);
+
+      // Force redraw of map
+      setTimeout(() => {
+        if (this.map) {
+          this.map.invalidateSize();
+          // Ensure we're at a good view
+          this.map.setView([20, 0], 2, {animate: false});
+        }
+      }, 100);
     } catch (error) {
       console.error('Error setting map style:', error);
     }
@@ -904,243 +900,108 @@ class GeochronMap {
   // Update the day/night visualization
   updateDayNight() {
     try {
+      // First clear previous layers
+      this.dayNightLayer.clearLayers();
+      
+      // Get current date and calculate subsolar point
       const now = new Date();
       const subsolarPoint = this.calculateSubsolarPoint(now);
-
-    // Update sun marker position
-    if (this.sunMarker) {
-      this.sunMarker.setLatLng([subsolarPoint.latitude, subsolarPoint.longitude]);
-    }
-
-    // Calculate twilight zones
-    const twilightZones = this.calculateTwilightZones(subsolarPoint);
-    const terminatorPoints = twilightZones.terminator;
-
-    // Update terminator polyline
-    if (this.terminatorPolyline) {
-      this.terminatorPolyline.setLatLngs(terminatorPoints);
-    }
-
-    // Clear previous layers
-    this.dayNightLayer.clearLayers();
-
-    // Add sun marker
-    this.sunMarker.addTo(this.dayNightLayer);
-
-    // Determine which side is day by checking the subsolar point directly
-    // The subsolar point is always in daylight
-    // We'll create a polygon for each half of the world and check which one contains the subsolar point
-
-    // Map bounds
-    const eastLongitude = 180;
-    const westLongitude = -180;
-    const northLatitude = 90;
-    const southLatitude = -90;
-
-    // Create east and west hemispheres divided by the terminator
-    const eastHemisphere = [
-      ...terminatorPoints,
-      [northLatitude, eastLongitude],
-      [southLatitude, eastLongitude],
-      [southLatitude, westLongitude],
-      [northLatitude, westLongitude],
-      terminatorPoints[0]
-    ];
-
-    const westHemisphere = terminatorPoints;
-
-    // Let's use a more reliable approach to determine day/night sides
-    // We'll check which side of the terminator contains the subsolar point
-    // The subsolar point is always in daylight
-
-    // First, let's create a test point at the subsolar location
-    const testPoint = [subsolarPoint.latitude, subsolarPoint.longitude];
-
-    // Now, let's check if this point is inside the eastern hemisphere polygon
-    // We'll use a simple point-in-polygon algorithm
-    // If the point is in the eastern hemisphere, then east is day
-    // Otherwise, west is day
-
-    // For our specific map construction, we need to check if the subsolar point
-    // is on the same side as the eastern hemisphere polygon
-    const isEastDay = isPointInEasternHemisphere(testPoint, terminatorPoints);
-
-    // Helper function to determine if a point is in the eastern hemisphere
-    function isPointInEasternHemisphere(point, terminator) {
-      // For our specific map construction:
-      // If the subsolar point longitude is between -90 and 90, east is day
-      // Otherwise, west is day
-      const lon = point[1];
-      // IMPORTANT: We need to invert the logic to fix the day/night display
-      return !(lon > -90 && lon < 90);
-    }
-
-    console.log('Subsolar point:', subsolarPoint, 'Longitude:', subsolarPoint.longitude, 'Is East Day:', isEastDay);
-
-    // Create polygons for each twilight zone
-    let dayPolygon, civilTwilightPolygon, nauticalTwilightPolygon, astronomicalTwilightPolygon, nightPolygon;
-
-    if (isEastDay) {
-      // Eastern side is day
-      // Day polygon (full daylight)
-      dayPolygon = eastHemisphere;
-
-      // Civil twilight polygon (sun is 0-6° below horizon)
-      civilTwilightPolygon = [
-        ...twilightZones.civilTwilight,
-        ...terminatorPoints.slice().reverse()
+      console.log("Sun position:", subsolarPoint.latitude, subsolarPoint.longitude);
+      
+      // Create standard terminator points (no offset)
+      const terminatorPoints = this.calculateTerminatorPoints(subsolarPoint, 0);
+      
+      // Create world bounds polygon for reference
+      const bounds = [
+        [90, -180],  // top-left
+        [90, 180],   // top-right
+        [-90, 180],  // bottom-right
+        [-90, -180], // bottom-left
+        [90, -180]   // back to top-left
       ];
-
-      // Nautical twilight polygon (sun is 6-12° below horizon)
-      nauticalTwilightPolygon = [
-        ...twilightZones.nauticalTwilight,
-        ...twilightZones.civilTwilight.slice().reverse()
-      ];
-
-      // Astronomical twilight polygon (sun is 12-18° below horizon)
-      astronomicalTwilightPolygon = [
-        ...twilightZones.astronomicalTwilight,
-        ...twilightZones.nauticalTwilight.slice().reverse()
-      ];
-
-      // Night polygon (full darkness, sun is >18° below horizon)
-      nightPolygon = twilightZones.astronomicalTwilight;
-    } else {
-      // Western side is day
-      // Day polygon (full daylight)
-      dayPolygon = westHemisphere;
-
-      // Civil twilight polygon (sun is 0-6° below horizon)
-      civilTwilightPolygon = [
-        ...terminatorPoints,
-        ...twilightZones.civilTwilight.slice().reverse()
-      ];
-
-      // Nautical twilight polygon (sun is 6-12° below horizon)
-      nauticalTwilightPolygon = [
-        ...twilightZones.civilTwilight,
-        ...twilightZones.nauticalTwilight.slice().reverse()
-      ];
-
-      // Astronomical twilight polygon (sun is 12-18° below horizon)
-      astronomicalTwilightPolygon = [
-        ...twilightZones.nauticalTwilight,
-        ...twilightZones.astronomicalTwilight.slice().reverse()
-      ];
-
-      // Night polygon (full darkness, sun is >18° below horizon)
-      nightPolygon = [
-        ...twilightZones.astronomicalTwilight,
-        [northLatitude, eastLongitude],
-        [southLatitude, eastLongitude],
-        [southLatitude, westLongitude],
-        [northLatitude, westLongitude],
-        twilightZones.astronomicalTwilight[0]
-      ];
-    }
-
-    // Create smoother transitions by adding more intermediate polygons
-
-    // Add night overlay (full darkness)
-    L.polygon(nightPolygon, {
-      fillColor: 'black',
-      fillOpacity: 0.6,
-      stroke: false,
-      className: 'night-overlay',
-      interactive: false,
-      smoothFactor: 1.5 // Smooths the polygon edges
-    }).addTo(this.dayNightLayer);
-
-    // Add astronomical twilight overlay (dark blue)
-    L.polygon(astronomicalTwilightPolygon, {
-      fillColor: '#0f172a', // Very dark blue
-      fillOpacity: 0.5,
-      stroke: false,
-      className: 'astronomical-twilight-overlay',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add a transition layer between astronomical and nautical twilight
-    const astroNauticalTransition = this.createTransitionPolygon(
-      twilightZones.astronomicalTwilight,
-      twilightZones.nauticalTwilight,
-      0.3
-    );
-
-    L.polygon(astroNauticalTransition, {
-      fillColor: '#1e3a8a', // Dark blue
-      fillOpacity: 0.4,
-      stroke: false,
-      className: 'twilight-transition',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add nautical twilight overlay (medium blue)
-    L.polygon(nauticalTwilightPolygon, {
-      fillColor: '#1e40af', // Medium dark blue
-      fillOpacity: 0.4,
-      stroke: false,
-      className: 'nautical-twilight-overlay',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add a transition layer between nautical and civil twilight
-    const nauticalCivilTransition = this.createTransitionPolygon(
-      twilightZones.nauticalTwilight,
-      twilightZones.civilTwilight,
-      0.3
-    );
-
-    L.polygon(nauticalCivilTransition, {
-      fillColor: '#3b82f6', // Medium blue
-      fillOpacity: 0.3,
-      stroke: false,
-      className: 'twilight-transition',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add civil twilight overlay (light blue/orange gradient)
-    L.polygon(civilTwilightPolygon, {
-      fillColor: '#3b82f6', // Light blue
-      fillOpacity: 0.3,
-      stroke: false,
-      className: 'civil-twilight-overlay',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add a transition layer between civil twilight and day
-    const civilDayTransition = this.createTransitionPolygon(
-      twilightZones.civilTwilight,
-      twilightZones.terminator,
-      0.3
-    );
-
-    L.polygon(civilDayTransition, {
-      fillColor: '#93c5fd', // Very light blue
-      fillOpacity: 0.2,
-      stroke: false,
-      className: 'twilight-transition',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add day overlay
-    L.polygon(dayPolygon, {
-      fillColor: 'white',
-      fillOpacity: 0.03,
-      stroke: false,
-      className: 'day-overlay',
-      interactive: false,
-      smoothFactor: 1.5
-    }).addTo(this.dayNightLayer);
-
-    // Add terminator line
-    this.terminatorPolyline.addTo(this.dayNightLayer);
+      
+      // Basic determination of which side is in day/night based on subsolar longitude
+      const sunLon = subsolarPoint.longitude;
+      const isDayWest = (sunLon > -90 && sunLon < 90);
+      
+      // Create day side polygon
+      let daySide;
+      if (isDayWest) {
+        // Western hemisphere in daylight
+        daySide = L.polygon([
+          ...terminatorPoints,
+          [90, -180], 
+          [-90, -180],
+          terminatorPoints[0]
+        ], {
+          fillColor: 'rgba(255, 255, 255, 0.1)',
+          fillOpacity: 0.1,
+          stroke: false,
+          interactive: false
+        }).addTo(this.dayNightLayer);
+      } else {
+        // Eastern hemisphere in daylight
+        daySide = L.polygon([
+          ...terminatorPoints,
+          [90, 180], 
+          [-90, 180],
+          terminatorPoints[0]
+        ], {
+          fillColor: 'rgba(255, 255, 255, 0.1)',
+          fillOpacity: 0.1,
+          stroke: false,
+          interactive: false
+        }).addTo(this.dayNightLayer);
+      }
+      
+      // Create night side polygon by creating the inverse of the day side
+      let nightSide;
+      if (isDayWest) {
+        // Eastern hemisphere in night
+        nightSide = L.polygon([
+          ...terminatorPoints.slice().reverse(),
+          [90, 180], 
+          [-90, 180],
+          terminatorPoints[terminatorPoints.length-1]
+        ], {
+          fillColor: '#000',
+          fillOpacity: 0.7,
+          stroke: false,
+          interactive: false
+        }).addTo(this.dayNightLayer);
+      } else {
+        // Western hemisphere in night
+        nightSide = L.polygon([
+          ...terminatorPoints.slice().reverse(),
+          [90, -180], 
+          [-90, -180],
+          terminatorPoints[terminatorPoints.length-1]
+        ], {
+          fillColor: '#000',
+          fillOpacity: 0.7,
+          stroke: false,
+          interactive: false
+        }).addTo(this.dayNightLayer);
+      }
+      
+      // Add a clearly visible terminator line
+      const terminatorLine = L.polyline(terminatorPoints, {
+        color: '#ffffff',
+        weight: 1.5,
+        opacity: 0.7,
+        smoothFactor: 1
+      }).addTo(this.dayNightLayer);
+      
+      // Add a distinct sun marker
+      const sunMarker = L.marker([subsolarPoint.latitude, subsolarPoint.longitude], {
+        icon: L.divIcon({
+          className: 'sun-marker',
+          html: '<div style="width: 24px; height: 24px; background-color: #ffcc00; border-radius: 50%; border: 2px solid #ff9900; box-shadow: 0 0 15px #ffcc00;"></div>',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        })
+      }).addTo(this.dayNightLayer);
+      
     } catch (error) {
       console.error('Error updating day/night visualization:', error);
     }
