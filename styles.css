@@ -248,17 +248,31 @@ body.light-theme .timezone-select:focus {
   width: 100%;
   border-radius: 0.5rem;
   overflow: hidden;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Fix for map duplication at low zoom levels */
+.leaflet-tile-container {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .leaflet-tile-container img {
   width: 256px !important;
   height: 256px !important;
 }
 
 /* Prevent map panning beyond bounds */
-.leaflet-map-pane {
+.leaflet-map-pane,
+.leaflet-tile-pane,
+.leaflet-overlay-pane,
+.leaflet-shadow-pane,
+.leaflet-marker-pane,
+.leaflet-popup-pane {
   transition: transform 0.1s ease;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Fix for map rendering issues */
@@ -266,10 +280,12 @@ body.light-theme .timezone-select:focus {
   visibility: inherit !important;
 }
 
-/* Ensure proper clipping of map */
+/* Ensure proper clipping of map and prevent horizontal scrolling */
 #geochron-map {
   clip-path: inset(0 0 0 0);
   -webkit-clip-path: inset(0 0 0 0);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .leaflet-control-attribution {

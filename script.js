@@ -444,14 +444,17 @@ class GeochronMap {
         maxZoom: 6,
         zoomControl: false,
         attributionControl: true,
-        scrollWheelZoom: true,
+        scrollWheelZoom: 'center',  // Zoom to center of view
         doubleClickZoom: true,
         dragging: true,
         worldCopyJump: false,  // Disable world copy jump to prevent duplication
-        maxBounds: [[-80, -180], [80, 180]],  // Limit to slightly tighter bounds to prevent edge corruption
-        maxBoundsViscosity: 1.0,
+        maxBounds: [[-90, -180], [90, 180]],  // Limit to full world bounds
+        maxBoundsViscosity: 1.0,  // Ensure the map stays within bounds
+        zoomSnap: 0.5,  // Allow finer zoom levels
+        boxZoom: false,  // Disable box zoom to prevent edge issues
         fadeAnimation: true,
-        markerZoomAnimation: true
+        markerZoomAnimation: true,
+        crs: L.CRS.EPSG3857  // Use standard Web Mercator projection
       });
 
       console.log('Map initialized successfully');
@@ -671,8 +674,9 @@ class GeochronMap {
         maxZoom: 6,
         minZoom: 2,
         noWrap: true,  // Prevent tile wrapping around the world
-        bounds: [[-80, -180], [80, 180]],
-        tileSize: 256
+        bounds: [[-90, -180], [90, 180]],
+        tileSize: 256,
+        continuousWorld: false  // Prevent continuous world wrapping
       }).addTo(this.map);
 
       // Add error handling for tile loading
@@ -692,9 +696,10 @@ class GeochronMap {
           maxZoom: 6,
           minZoom: 2,
           noWrap: true,  // Prevent tile wrapping around the world
-          bounds: [[-80, -180], [80, 180]],
+          bounds: [[-90, -180], [90, 180]],
           tileSize: 256,
-          pane: 'shadowPane' // Place labels on top
+          pane: 'shadowPane', // Place labels on top
+          continuousWorld: false  // Prevent continuous world wrapping
         }).addTo(this.map);
 
         // Add error handling for label tiles
@@ -1190,11 +1195,14 @@ class GeochronMap {
       // Ensure map is within bounds
       const bounds = this.map.getBounds();
       if (bounds && bounds._northEast && bounds._southWest) {
-        if (bounds._northEast.lat > 80 || bounds._southWest.lat < -80 ||
+        if (bounds._northEast.lat > 90 || bounds._southWest.lat < -90 ||
             bounds._northEast.lng > 180 || bounds._southWest.lng < -180) {
           this.map.setView([20, 0], 2, {animate: false});
         }
       }
+
+      // Force the map to stay within its container
+      this.map.invalidateSize({animate: false, pan: false});
     }
   }
 }
